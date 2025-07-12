@@ -72,7 +72,7 @@ export function ContactSection({ isVisible }: ContactSectionProps) {
     setStatus({ type: null, message: "" })
 
     try {
-      const response = await fetch("http://localhost:3001/api/sendMessage", {
+      const response = await fetch("https://backend-skv-port.onrender.com/api/sendMessage", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
