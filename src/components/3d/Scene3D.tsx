@@ -1,18 +1,17 @@
 "use client"
 
-import { Suspense, useRef } from "react"
+import type React from "react"
+
+import { Suspense, useRef, useState } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, Environment, ContactShadows, useGLTF, Center, Float } from "@react-three/drei"
 import type * as THREE from "three"
 
-// 3D Model Component
 function Model3D({ url }: { url: string }) {
   const modelRef = useRef<THREE.Group>(null)
 
-  // Load the GLTF model
   const { scene } = useGLTF(url)
 
-  // Animate the model
   useFrame((state) => {
     if (modelRef.current) {
       modelRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1
@@ -29,7 +28,6 @@ function Model3D({ url }: { url: string }) {
   )
 }
 
-// Fallback 3D Object (Dragon-like shape) - Properly sized to fit container
 function DefaultModel() {
   const meshRef = useRef<THREE.Group>(null)
 
@@ -43,7 +41,6 @@ function DefaultModel() {
   return (
     <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.4}>
       <group ref={meshRef} position={[0, 0, 0]} scale={[0.4, 0.4, 0.4]}>
-        {/* Main body */}
         <mesh position={[0, 0, 0]}>
           <sphereGeometry args={[1, 32, 32]} />
           <meshStandardMaterial
@@ -55,7 +52,6 @@ function DefaultModel() {
           />
         </mesh>
 
-        {/* Wings */}
         <mesh position={[-1.2, 0.4, 0]} rotation={[0, 0, Math.PI / 6]}>
           <coneGeometry args={[0.6, 1.5, 8]} />
           <meshStandardMaterial color="#3B82F6" metalness={0.8} roughness={0.2} transparent opacity={0.8} />
@@ -66,19 +62,16 @@ function DefaultModel() {
           <meshStandardMaterial color="#3B82F6" metalness={0.8} roughness={0.2} transparent opacity={0.8} />
         </mesh>
 
-        {/* Tail */}
         <mesh position={[0, -0.4, -1.2]} rotation={[Math.PI / 4, 0, 0]}>
           <cylinderGeometry args={[0.25, 0.08, 1.2, 8]} />
           <meshStandardMaterial color="#1D4ED8" metalness={0.6} roughness={0.4} />
         </mesh>
 
-        {/* Head/Neck */}
         <mesh position={[0, 0.6, 0.8]} rotation={[Math.PI / 8, 0, 0]}>
           <cylinderGeometry args={[0.3, 0.5, 0.8, 8]} />
           <meshStandardMaterial color="#1E40AF" metalness={0.7} roughness={0.3} />
         </mesh>
 
-        {/* Eyes */}
         <mesh position={[-0.15, 0.8, 1.1]}>
           <sphereGeometry args={[0.05, 8, 8]} />
           <meshStandardMaterial color="#FBBF24" emissive="#F59E0B" emissiveIntensity={0.5} />
@@ -92,12 +85,21 @@ function DefaultModel() {
   )
 }
 
-// Loading component
-function Loader() {
+function ThreeJSLoader() {
+  const meshRef = useRef<THREE.Mesh>(null)
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x = state.clock.elapsedTime
+      meshRef.current.rotation.y = state.clock.elapsedTime * 0.5
+    }
+  })
+
   return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-white text-lg animate-pulse">Loading 3D Model...</div>
-    </div>
+    <mesh ref={meshRef}>
+      <boxGeometry args={[0.5, 0.5, 0.5]} />
+      <meshStandardMaterial color="#60A5FA" wireframe />
+    </mesh>
   )
 }
 
@@ -107,12 +109,27 @@ interface Scene3DProps {
 }
 
 export function Scene3D({ modelUrl, className = "" }: Scene3DProps) {
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
+
   return (
-    <div className={`w-full h-full ${className}`}>
+    <div className={`w-full h-full relative ${className}`}>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+          <div className="text-white text-lg animate-pulse">Loading 3D Scene...</div>
+        </div>
+      )}
+
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+          <div className="text-red-400 text-lg">Failed to load 3D model</div>
+        </div>
+      )}
+
       <Canvas
         camera={{
-          position: [6, 3, 8], // Moved camera much further back
-          fov: 45, // Reduced field of view for better fit
+          position: [6, 3, 8],
+          fov: 45,
           near: 0.1,
           far: 1000,
         }}
@@ -122,55 +139,73 @@ export function Scene3D({ modelUrl, className = "" }: Scene3DProps) {
           powerPreference: "high-performance",
         }}
         style={{ background: "transparent" }}
+        onCreated={() => {
+          setIsLoading(false)
+        }}
+        onError={() => {
+          setHasError(true)
+          setIsLoading(false)
+        }}
       >
-        {/* Camera Controls - Adjusted for proper viewing distance */}
         <OrbitControls
           enablePan={false}
           enableZoom={true}
           enableRotate={true}
           autoRotate={true}
           autoRotateSpeed={0.8}
-          minDistance={5} // Minimum distance to keep model in view
-          maxDistance={15} // Maximum distance
+          minDistance={5}
+          maxDistance={15}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI - Math.PI / 6}
           target={[0, 0, 0]}
         />
 
-        {/* Lighting Setup */}
-        <ambientLight intensity={0.4} />
+        <ambientLight intensity={0.6} />
 
-        {/* Main directional light */}
         <directionalLight
           position={[5, 8, 5]}
-          intensity={1}
+          intensity={0.8}
           castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-camera-far={30}
-          shadow-camera-left={-8}
-          shadow-camera-right={8}
-          shadow-camera-top={8}
-          shadow-camera-bottom={-8}
+          shadow-mapSize-width={512}
+          shadow-mapSize-height={512}
+          shadow-camera-far={20}
+          shadow-camera-left={-5}
+          shadow-camera-right={5}
+          shadow-camera-top={5}
+          shadow-camera-bottom={-5}
         />
 
-        {/* Accent lights */}
-        <pointLight position={[-4, 3, -4]} intensity={0.5} color="#60A5FA" />
-        <pointLight position={[4, -2, 4]} intensity={0.3} color="#A78BFA" />
-        <spotLight position={[0, 8, 0]} intensity={0.4} angle={0.5} penumbra={1} color="#FBBF24" />
+        <pointLight position={[-4, 3, -4]} intensity={0.3} color="#60A5FA" />
 
-        {/* Environment */}
         <Environment preset="night" />
 
-        {/* 3D Model */}
-        <Suspense fallback={<Loader />}>{modelUrl ? <Model3D url={modelUrl} /> : <DefaultModel />}</Suspense>
+        <Suspense fallback={<ThreeJSLoader />}>
+          {modelUrl ? (
+            <ErrorBoundary fallback={<DefaultModel />}>
+              <Model3D url={modelUrl} />
+            </ErrorBoundary>
+          ) : (
+            <DefaultModel />
+          )}
+        </Suspense>
 
-        {/* Ground Shadow */}
-        <ContactShadows position={[0, -2.5, 0]} opacity={0.25} scale={12} blur={2.5} far={6} resolution={256} />
+        <ContactShadows position={[0, -2.5, 0]} opacity={0.2} scale={10} blur={2} far={4} resolution={128} />
       </Canvas>
     </div>
   )
 }
 
-// Preload the default model
-useGLTF.preload("/models/solar_system_animation.glb")
+function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false)
+
+  if (hasError) {
+    return <>{fallback}</>
+  }
+
+  try {
+    return <>{children}</>
+  } catch (error) {
+    setHasError(true)
+    return <>{fallback}</>
+  }
+}
