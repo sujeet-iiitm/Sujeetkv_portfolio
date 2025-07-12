@@ -22,17 +22,16 @@ export const AuroraBackground = ({
       )}
       {...props}
     >
-      {/* Animated Colorful Border */}
-      <div className="absolute inset-4 rounded-lg ">
+      <div className="absolute inset-4 rounded-lg overflow-hidden">
         <div
-          className="absolute inset-0 rounded-lg animate-spin"
+          className="absolute inset-4 rounded-lg animate-spin"
           style={{
             background:
-              "conic-gradient(from 0deg, #ff8c00, #00bfff)",
+              "conic-gradient(from 0deg, #ff0080, #ff8c00, #40e0d0, #ff0080, #9400d3, #00ff00, #ff1493, #00bfff, #ff0080)",
             animation: "spin 3s linear infinite",
           }}
         ></div>
-        <div className="absolute inset-[3px] rounded-lg bg-black glassy"></div>
+        <div className="absolute inset-[8px] rounded-lg bg-black"></div>
       </div>
 
       <div
